@@ -129,7 +129,10 @@ which is the expected state until the WinRT headers are generated.
 ## Releasing
 
 Publishing is driven by tags, and pub.dev authenticates the run by its OIDC
-identity — there is no token in this repository.
+identity — there is no pub.dev token in this repository. When a new version
+lands on `main`, the release workflow creates its tag, publishes the package,
+then creates the matching GitHub Release with the exact pub.dev archive and
+the version's `CHANGELOG.md` notes attached.
 
 ```sh
 git tag v0.1.0 && git push origin v0.1.0

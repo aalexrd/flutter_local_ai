@@ -1,7 +1,8 @@
 name: Publish
 
 # One package ships from this repository, and pushing a version tag is what
-# ships it.
+# ships it. After pub.dev accepts the package, the workflow also creates the
+# matching GitHub Release and attaches the exact archive served by pub.dev.
 #
 # pub.dev has to be told to expect that. On the package's Admin -> Automated
 # publishing tab, "Enable publishing from GitHub Actions" must be ticked
@@ -243,6 +244,7 @@ jobs:
       # on this job alone — validate runs the package's own tooling over the
       # whole tree and has no business holding a token that can publish.
       id-token: write
+      contents: write # create the GitHub release and upload its archive
     steps:
       - uses: actions/checkout@v4
 
@@ -272,3 +274,23 @@ jobs:
               flutter pub publish --dry-run ;;
             *) echo "::error::pub.dev answered HTTP $status for $version."; exit 1 ;;
           esac
+
+      - name: Create the GitHub release with the published archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+          tag="v$version"
+          mkdir -p dist
+          curl --fail --location --retry 8 --retry-all-errors \
+            --output "dist/flutter_local_ai-$version.tar.gz" \
+            "https://pub.dev/api/archives/flutter_local_ai-$version.tar.gz"
+          bash .github/scripts/release-notes.sh "$version" CHANGELOG.md > notes.md
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* \
+              --verify-tag \
+              --title "flutter_local_ai $version" \
+              --notes-file notes.md
+          fi

@@ -94,4 +94,6 @@ darwin/.build
 #Marketing
 marketing/
 
-.claude/
+# Local agent settings stay out; the maintainer skill is shared.
+.claude/*
+!.claude/skills/

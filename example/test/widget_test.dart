@@ -22,12 +22,13 @@ void main() {
     await host.dispose();
   });
 
-  testWidgets('the example offers all three surfaces', (tester) async {
+  testWidgets('the example offers all four surfaces', (tester) async {
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
 
     expect(find.text('Generative UI'), findsOneWidget);
     expect(find.text('Text'), findsOneWidget);
     expect(find.text('Sessions'), findsOneWidget);
+    expect(find.text('Image'), findsOneWidget);
   });
 }

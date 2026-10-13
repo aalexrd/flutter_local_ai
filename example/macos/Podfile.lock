@@ -1,22 +1,28 @@
 PODS:
-  - flutter_local_ai (0.1.0):
+  - file_selector_macos (0.0.1):
+    - FlutterMacOS
+  - flutter_local_ai (0.2.1):
     - Flutter
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
 
 DEPENDENCIES:
+  - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - flutter_local_ai (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_ai/darwin`)
   - FlutterMacOS (from `Flutter/ephemeral`)
 
 EXTERNAL SOURCES:
+  file_selector_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   flutter_local_ai:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_local_ai/darwin
   FlutterMacOS:
     :path: Flutter/ephemeral
 
 SPEC CHECKSUMS:
-  flutter_local_ai: ae5fa9cfca2584a1a737a0e8132744d6cf0e798a
-  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
+  flutter_local_ai: 5b98bbe94c0498511916a2b7ade63608ef606d1e
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
 
 PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
 

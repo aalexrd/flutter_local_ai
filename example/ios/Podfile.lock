@@ -1,23 +1,29 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_local_ai (0.1.0):
+  - flutter_local_ai (0.2.1):
     - Flutter
     - FlutterMacOS
+  - image_picker_ios (0.0.1):
+    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_local_ai (from `.symlinks/plugins/flutter_local_ai/darwin`)
+  - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
   flutter_local_ai:
     :path: ".symlinks/plugins/flutter_local_ai/darwin"
+  image_picker_ios:
+    :path: ".symlinks/plugins/image_picker_ios/ios"
 
 SPEC CHECKSUMS:
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_local_ai: ae5fa9cfca2584a1a737a0e8132744d6cf0e798a
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  flutter_local_ai: 5b98bbe94c0498511916a2b7ade63608ef606d1e
+  image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
 
 COCOAPODS: 1.17.0

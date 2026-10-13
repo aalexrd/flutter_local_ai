@@ -27,6 +27,10 @@ This example app supports:
 #### iOS/macOS
 - Xcode 16.0 or later
 - iOS 26.0+ / macOS 26.0+ deployment target
+- Image analysis requires an OS 27 SDK build and iOS 27 / macOS 27.
+  The macOS runner includes read-only access to files selected by the user so
+  images chosen with the system file picker remain accessible in the app
+  sandbox.
 
 #### Windows
 - **Copilot+ PC** with NPU capable of 40+ TOPS (required)
@@ -66,6 +70,9 @@ Copilot+ PCs are Windows 11 devices with a high-performance Neural Processing Un
 - Checking AI availability on the device
 - Initializing the AI model with custom instructions
 - Generating text with configurable parameters
+- Selecting or photographing any image and prompting the on-device vision
+  model to describe it or extract specific information (Android, or an OS 27
+  Apple build)
 - Error handling for platform-specific issues (e.g., AICore on Android)
 - UI feedback for initialization and generation states
 

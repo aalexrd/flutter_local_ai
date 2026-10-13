@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a picture to analyze its contents on device.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Select an image to analyze its contents on device.</string>
 	<key>MinimumOSVersion</key>
 	<string>26.0</string>
 	<key>UIApplicationSceneManifest</key>

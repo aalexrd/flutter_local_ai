@@ -9,6 +9,9 @@ publish.sh
 # video.gif deliberately stay: README.md renders both.
 marketing/
 
+# Maintainer-only agent skill. The user-facing skill in skills/ does ship.
+.claude/
+
 # Pigeon input: consumers get the generated output, not the generator, and
 # the pigeon dev-dependency is not resolved for them.
 pigeon.dart

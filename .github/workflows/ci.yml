@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # The latest-stable and beta legs below follow whatever Flutter has
+  # released, so a new SDK can break the package without a single commit
+  # landing here. A daily run finds that out before a consumer does.
+  schedule:
+    - cron: "17 5 * * *"
 
 # A superseded run on the same branch has nothing left to tell us.
 concurrency:
@@ -21,12 +26,49 @@ env:
   FLUTTER_PINNED: "3.44.x"
 
 jobs:
+  # AI agents cannot be contributors here (CONTRIBUTING.md#contributors), so
+  # every commit a pull request or a push to main brings in is checked for an
+  # agent as author, committer or co-author.
+  contributors:
+    name: Human contributors only
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check commit authorship
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT" == pull_request ]]; then
+            .github/scripts/check-contributors.sh "$PR_BASE..$PR_HEAD" "$PR_AUTHOR"
+          elif git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            .github/scripts/check-contributors.sh "$PUSH_BEFORE..$PUSH_AFTER"
+          else
+            # A new branch or a force push leaves no usable "before"; the
+            # pushed tip itself is still checked.
+            .github/scripts/check-contributors.sh "$PUSH_AFTER~1..$PUSH_AFTER"
+          fi
+
   # pubspec.yaml advertises flutter >=3.44.0 / Dart >=3.12.0. A floor nothing
   # ever builds against is a guess, and it breaks silently: a dependency bump
   # or one piece of newer syntax raises the real floor while the published
   # constraint keeps promising the old one, and the consumer sitting on
   # Flutter 3.44.0 is the one who finds out. So the floor gets a matrix leg of
   # its own and has to resolve, analyze and pass the suite like any other.
+  #
+  # The floor and the pin only say the package worked on the SDKs that
+  # existed when they were chosen. Two more legs track Flutter as it moves —
+  # the newest stable release and the newest beta — so a breaking SDK change
+  # shows up here (and on the daily schedule above) rather than in a
+  # consumer's build. They resolve, analyze and test like the others but
+  # never assert formatting: that belongs to the pinned toolchain alone.
   #
   # `strategy.matrix` cannot read the `env` context, so FLUTTER_PINNED is
   # spelled out again below instead of referenced. Change the two together —
@@ -38,7 +80,7 @@ jobs:
     name: flutter_local_ai (Flutter ${{ matrix.flutter }})
     runs-on: ubuntu-latest
     strategy:
-      # Both legs report. Being told only that the floor broke, while the
+      # Every leg reports. Being told only that the floor broke, while the
       # stable leg was cancelled halfway through, costs another round trip.
       fail-fast: false
       matrix:
@@ -49,6 +91,17 @@ jobs:
             flutter: "3.44.0"
           - label: stable
             flutter: "3.44.x"
+          # `flutter` is only the display name for these two: `latest` hands
+          # subosito/flutter-action an empty version, which it resolves to the
+          # newest release on `channel`.
+          - label: latest-stable
+            flutter: latest stable
+            channel: stable
+            latest: true
+          - label: beta
+            flutter: latest beta
+            channel: beta
+            latest: true
     steps:
       - uses: actions/checkout@v4
 
@@ -72,8 +125,12 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ matrix.flutter }}
+          flutter-version: ${{ !matrix.latest && matrix.flutter || '' }}
+          channel: ${{ matrix.channel || 'stable' }}
           cache: true
+
+      - name: Report the resolved SDK
+        run: flutter --version
 
       # Resolution is the first half of the compatibility claim: on the floor
       # leg pub has to find a set of dependency versions a Dart 3.12.0 SDK will

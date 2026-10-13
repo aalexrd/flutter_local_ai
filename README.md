@@ -1020,6 +1020,30 @@ runtime form to bridge. See the
 [platform coverage and remaining gaps](doc/platform-support.md#platform-coverage-and-remaining-gaps)
 for current API versions, supported features, and what is still unverified.
 
+## Skills
+
+The package ships an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills)
+that teaches a coding assistant how to use it: availability checks, the two
+APIs, streaming, structured output, tool calls, genUI, per-platform setup and
+testing with the fake host. Install it into your app:
+
+```bash
+mkdir -p .claude/skills/flutter-local-ai
+curl -fsSL -o .claude/skills/flutter-local-ai/SKILL.md \
+  https://raw.githubusercontent.com/kekko7072/flutter_local_ai/main/skills/flutter-local-ai/SKILL.md
+```
+
+It is also inside the package archive, at
+`skills/flutter-local-ai/SKILL.md` under the package's directory in your pub
+cache.
+
+Maintainers of this repository get a second skill,
+[`.claude/skills/flutter-local-ai-maintainer`](.claude/skills/flutter-local-ai-maintainer/SKILL.md),
+loaded automatically when working in a checkout.
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md)
+before opening a pull request. Contributors must be people: AI agents (Claude,
+Codex, Copilot and the like) cannot be commit authors, committers or
+co-authors, and CI rejects commits that name one.

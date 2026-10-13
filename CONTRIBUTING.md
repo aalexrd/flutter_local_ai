@@ -1,5 +1,25 @@
 # Contributing
 
+## Contributors
+
+Contributors to this repository are people. An AI agent — Claude, Codex,
+Copilot, Cursor, Devin, Jules, Aider or any other — cannot be a contributor:
+not as a commit author, not as a committer, not as a `Co-authored-by:` (or
+similar) trailer, and not as the account that opens a pull request. Commits
+must not carry agent trailers such as `Claude-Session:` or a "Generated with
+…" line either.
+
+The person whose name is on a commit is the one answerable for it. Whatever
+tools you used along the way, you are submitting the change as your own work:
+you have read every line, you understand it, and you can defend it in review.
+
+CI enforces this. The **Human contributors only** job runs
+`.github/scripts/check-contributors.sh` over every commit a pull request or a
+push to `main` brings in, and fails on any agent identity or trailer. To fix
+a failing check, reword the offending commits (`git commit --amend`, or
+`git rebase -i` across several) so that the agent attribution is gone, then
+force-push your branch.
+
 ## Layout
 
 One standalone package lives here: `flutter_local_ai`.
@@ -46,6 +66,35 @@ Two rules keep it that way:
 - **Capabilities are runtime, not compile-time.** The same binary reports
   vision as unavailable on iOS 26 and available on 27. Ask
   `LocalAi.capabilities()`, never `Platform.isX`.
+
+## Flutter versions CI tests against
+
+The `check` job in `.github/workflows/ci.yml` runs analyze and the test
+suites on four SDKs:
+
+| Leg | SDK | Why |
+|---|---|---|
+| `floor` | 3.44.0 | the minimum `pubspec.yaml` promises |
+| `stable` | `FLUTTER_PINNED` (3.44.x) | the toolchain formatting and pigeon output are pinned to |
+| `latest-stable` | newest release on the stable channel | catches a new stable SDK breaking the package |
+| `beta` | newest release on the beta channel | the same, one release ahead |
+
+The last two follow Flutter as it ships, so CI also runs on a daily schedule:
+a new SDK release can break the build without any commit landing here.
+
+## Skills
+
+Two [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills) ship
+with this repository:
+
+- `skills/flutter-local-ai/SKILL.md` — for app developers *using* the
+  package. It ships in the pub.dev archive; see the README's **Skills**
+  section for how to install it.
+- `.claude/skills/flutter-local-ai-maintainer/SKILL.md` — for maintainers of
+  this repository: the architecture rules, the wire, CI and releasing.
+
+When you change public API, a platform's setup, CI or the release flow,
+update the matching skill in the same pull request.
 
 ## Changing the wire
 

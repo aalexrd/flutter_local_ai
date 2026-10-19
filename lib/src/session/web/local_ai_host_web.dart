@@ -86,6 +86,7 @@ class WebLocalAiHost implements LocalAiHost {
   bool _warnedOverrides = false;
   bool _warnedClamp = false;
   bool _warnedDropped = false;
+  bool _warnedSampling = false;
 
   @override
   Stream<LocalAiHostEvent> get events => _events.stream;
@@ -131,9 +132,9 @@ class WebLocalAiHost implements LocalAiHost {
         'available' => LocalAiAvailability.available,
         'downloadable' => LocalAiAvailability.downloadable,
         'downloading' => LocalAiAvailability.downloading,
-        // Chrome's 'unavailable' carries no reason — disk floor, VRAM, or a
-        // missing origin trial all collapse into it, so the unclassified
-        // bucket is the honest mapping.
+        // Chrome's 'unavailable' carries no reason — a setting or policy,
+        // the disk floor or the GPU all collapse into it, so the
+        // unclassified bucket is the honest mapping.
         _ => LocalAiAvailability.unavailableOther,
       };
     } catch (_) {
@@ -147,8 +148,7 @@ class WebLocalAiHost implements LocalAiHost {
   Future<String> availabilityReason() async {
     if (!hasLanguageModel) {
       return 'This browser does not expose the Prompt API. Use desktop '
-          'Chrome or Chromium-Edge with the Prompt API enabled (origin trial '
-          'token, or chrome://flags/#prompt-api-for-gemini-nano).';
+          'Chrome 148 or newer, on a page served from localhost or HTTPS.';
     }
     return switch (await checkAvailability()) {
       LocalAiAvailability.available => 'Gemini Nano is ready.',
@@ -159,8 +159,9 @@ class WebLocalAiHost implements LocalAiHost {
         'Gemini Nano is downloading. Call LocalAi.ensureReady() and wait.',
       _ =>
         'The Prompt API reported the model as unavailable without a '
-            'reason. Common causes are too little free disk (~22 GB needed), '
-            'an ineligible GPU, or a missing origin-trial token.',
+            'reason. Common causes are on-device AI turned off in Chrome '
+            'Settings or by enterprise policy, too little free disk (~22 GB '
+            'needed), or an ineligible GPU.',
     };
   }
 
@@ -284,10 +285,9 @@ class WebLocalAiHost implements LocalAiHost {
         'Chrome Prompt API has no top-p sampling and no output-length cap.',
       );
     }
-    final (clampedTemperature, clampedTopK) = await _clampSampler(
-      temperature: temperature,
-      topK: topK,
-    );
+    final (clampedTemperature, clampedTopK) = hasLanguageModelParams
+        ? await _clampSampler(temperature: temperature, topK: topK)
+        : _dropSampling();
     final options = buildCreateOptions(
       systemInstruction: systemInstruction,
       temperature: clampedTemperature,
@@ -308,17 +308,14 @@ class WebLocalAiHost implements LocalAiHost {
   /// otherwise means no web session at all, with a JS error naming neither the
   /// offending knob nor the limit.
   ///
-  /// `params()` is best-effort throughout: Chrome 151 dropped the static
-  /// ([hasLanguageModelParams] is false there), and a build that keeps it may
-  /// still reject or omit a bound. Every one of those skips the clamp and
-  /// passes the caller's values through — `create()` is the source of truth
-  /// for what is acceptable, this only turns a common rejection into a
-  /// working session.
+  /// `params()` is best-effort: a build that keeps it may still reject or
+  /// omit a bound. Either skips the clamp and passes the caller's values
+  /// through — `create()` is the source of truth for what is acceptable, this
+  /// only turns a common rejection into a working session.
   Future<(double, int)> _clampSampler({
     required double temperature,
     required int topK,
   }) async {
-    if (!hasLanguageModelParams) return (temperature, topK);
     try {
       final bounds = readSamplerBounds(await LanguageModel.params().toDart);
       final maxTemperature = bounds.maxTemperature;
@@ -335,6 +332,22 @@ class WebLocalAiHost implements LocalAiHost {
     } catch (_) {
       return (temperature, topK);
     }
+  }
+
+  /// A Chrome without `params()` (151 dropped it) no longer lets a page set
+  /// sampling: it ignores `temperature` and `topK` with a deprecation warning
+  /// on every `create()`. Leave both out and say so once instead.
+  (double?, int?) _dropSampling() {
+    if (!_warnedSampling) {
+      _warnedSampling = true;
+      // ignore: avoid_print
+      print(
+        '[flutter_local_ai/web] temperature and topK are ignored: this '
+        'Chrome does not let a web page set sampling, so the browser\'s '
+        'defaults apply.',
+      );
+    }
+    return (null, null);
   }
 
   /// Says once that sampling was lowered. Once, not per session: an app that

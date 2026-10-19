@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+// Flutter after 3.47 moves Material to package:material_ui, which the 3.44
+// floor cannot resolve; keep this import until the floor reaches it.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;

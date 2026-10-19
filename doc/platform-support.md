@@ -95,8 +95,8 @@ transcript there would feed every earlier turn back a second time. The
 practical consequence is that the web arm's context limit is the browser
 session's `inputQuota`, not something this package trims.
 
-The web arm's availability gates are the browser's own — free disk space, an
-eligible GPU, and an origin-trial token where the API is still trialled —
+The web arm's availability gates are the browser's own — on-device AI
+enabled in Chrome's settings and policy, free disk space and an eligible GPU —
 which is why `LocalAi.availabilityReason()` exists instead of a version check.
 
 ## Build requirements

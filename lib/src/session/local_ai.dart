@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
+
 import 'local_ai_host_api.dart';
 import 'local_ai_runtime.dart';
 
@@ -20,18 +22,45 @@ abstract final class LocalAi {
   /// Current availability of the OS built-in model.
   ///
   /// Never throws and never hangs: a probe that doesn't return within
-  /// [debugProbeTimeout] resolves to
-  /// [LocalAiAvailability.unavailableOther] so callers can degrade.
+  /// [debugProbeTimeout], or that fails, resolves to
+  /// [LocalAiAvailability.unavailableOther] so callers can degrade. The
+  /// failure is printed, once per distinct cause, so an unregistered plugin
+  /// (a hot restart after `flutter pub add`) does not read as an unsupported
+  /// device.
   static Future<LocalAiAvailability> availability({LocalAiHost? host}) async {
     try {
-      return await (host ?? localAiHost).checkAvailability().timeout(
+      final status = await (host ?? localAiHost).checkAvailability().timeout(
         debugProbeTimeout,
       );
+      _lastProbeFailure = null;
+      return status;
     } on TimeoutException {
+      _reportProbeFailure(
+        'the availability probe did not return within $debugProbeTimeout',
+      );
       return LocalAiAvailability.unavailableOther;
-    } catch (_) {
+    } catch (e) {
+      _reportProbeFailure(
+        e is MissingPluginException ||
+                (e is PlatformException && e.code == 'channel-error')
+            ? 'the native plugin is not registered ($e). After adding '
+                  'flutter_local_ai, stop the app and run it again; a hot '
+                  'restart does not load a new plugin'
+            : 'the availability probe failed ($e)',
+      );
       return LocalAiAvailability.unavailableOther;
     }
+  }
+
+  static String? _lastProbeFailure;
+
+  /// Prints [cause] unless it is the one printed last: [ensureReady] polls
+  /// every 200 ms, and the same failure on every poll is noise.
+  static void _reportProbeFailure(String cause) {
+    if (cause == _lastProbeFailure) return;
+    _lastProbeFailure = cause;
+    // ignore: avoid_print
+    print('flutter_local_ai: reporting unavailableOther because $cause.');
   }
 
   /// One human-readable sentence naming what the user would have to change.
@@ -64,7 +93,10 @@ abstract final class LocalAi {
   ///
   /// - [LocalAiAvailability.available] returns immediately.
   /// - Any `unavailable*` throws [LocalAiUnavailableException] without
-  ///   attempting a download — those states can't be fixed by waiting.
+  ///   attempting a download — waiting inside this call would not fix them.
+  ///   Some clear later on their own (on Android, AICore reports a supported
+  ///   device that has not finished setting up as unsupported), so re-check
+  ///   [availability] later rather than treating them as final.
   /// - [LocalAiAvailability.downloadable] kicks off the download;
   ///   [LocalAiAvailability.downloading] joins the one already running.
   ///
@@ -139,15 +171,19 @@ abstract final class LocalAi {
             case LocalAiAvailability.downloadable:
             case LocalAiAvailability.downloading:
               await Future<void>.delayed(const Duration(milliseconds: 200));
-            case LocalAiAvailability.unavailableDeviceUnsupported:
-            case LocalAiAvailability.unavailableOsTooOld:
-            case LocalAiAvailability.unavailableDisabled:
-            case LocalAiAvailability.unavailableOther:
+            case final status &&
+                (LocalAiAvailability.unavailableDeviceUnsupported ||
+                    LocalAiAvailability.unavailableOsTooOld ||
+                    LocalAiAvailability.unavailableDisabled ||
+                    LocalAiAvailability.unavailableOther):
+              // The status the OS reports now, not a blanket unavailableOther:
+              // turning Apple Intelligence off mid-download is
+              // unavailableDisabled, and the caller's remedy depends on it.
               if (!ready.isCompleted) {
                 ready.completeError(
                   LocalAiUnavailableException(
-                    LocalAiAvailability.unavailableOther,
-                    'Built-in AI became unavailable during download.',
+                    status,
+                    'Built-in AI became unavailable during download: $status',
                   ),
                 );
               }

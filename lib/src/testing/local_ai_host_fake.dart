@@ -152,6 +152,10 @@ class FakeLocalAiHost implements LocalAiHost {
   /// started, such as the web arm outside a user gesture.
   Object? downloadFeatureError;
 
+  /// Thrown by [checkAvailability] when set — models an unregistered plugin
+  /// or a native probe that fails.
+  Object? checkAvailabilityError;
+
   /// Thrown by [availabilityReason] when set — models an unregistered plugin.
   Object? availabilityReasonError;
 
@@ -266,6 +270,8 @@ class FakeLocalAiHost implements LocalAiHost {
   @override
   Future<LocalAiAvailability> checkAvailability() async {
     calls.add('checkAvailability');
+    final error = checkAvailabilityError;
+    if (error != null) throw error;
     return availability;
   }
 

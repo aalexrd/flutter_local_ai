@@ -512,6 +512,28 @@ void main() {
     });
   });
 
+  group('LocalAi.availability', () {
+    test('reports a failed probe as unavailableOther and prints why', () async {
+      host.checkAvailabilityError = MissingPluginException('no plugin');
+      final printed = <String>[];
+
+      final status = await runZoned(
+        () async {
+          // Twice: the same cause is printed once, not on every poll.
+          await LocalAi.availability();
+          return LocalAi.availability();
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (_, _, _, line) => printed.add(line),
+        ),
+      );
+
+      expect(status, LocalAiAvailability.unavailableOther);
+      expect(printed, hasLength(1));
+      expect(printed.single, contains('not registered'));
+    });
+  });
+
   group('LocalAi.ensureReady', () {
     test('returns immediately when already available', () async {
       await LocalAi.ensureReady();
@@ -568,6 +590,25 @@ void main() {
             (e) => e.status,
             'status',
             LocalAiAvailability.downloadable,
+          ),
+        ),
+      );
+    });
+
+    test('reports the status the OS gives when a download fails', () async {
+      host.availability = LocalAiAvailability.downloading;
+
+      final ready = LocalAi.ensureReady();
+      await pumpEventQueue();
+      host.availability = LocalAiAvailability.unavailableDisabled;
+
+      await expectLater(
+        ready,
+        throwsA(
+          isA<LocalAiUnavailableException>().having(
+            (e) => e.status,
+            'status',
+            LocalAiAvailability.unavailableDisabled,
           ),
         ),
       );

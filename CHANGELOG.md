@@ -1,3 +1,19 @@
+## 0.2.2
+
+Notes from the flutter_edge_ai built-in AI codelab review.
+
+* `LocalAi.availability()` prints why it reports `unavailableOther` when the
+  probe fails or times out, once per cause. An unregistered plugin, such as
+  after a hot restart that follows `flutter pub add`, no longer reads as an
+  unsupported device.
+* `ensureReady()` reports the status the OS gives when the model becomes
+  unavailable during a download, such as `unavailableDisabled`, instead of
+  always `unavailableOther`.
+* The Android unavailability reason links Google's Prompt API device list
+  and says that a supported device can need time to set up. It no longer
+  names the Galaxy S25, which is not on that list.
+* `FakeLocalAiHost.checkAvailabilityError` simulates a failing probe.
+
 ## 0.2.1
 
 Answers [#26](https://github.com/kekko7072/flutter_local_ai/issues/26).

@@ -201,10 +201,10 @@ Works on Apple and Android. To drive the same schema with another model, use
   Windows 11 25H2+, and an **MSIX-packaged** app with the `systemAIModels`
   capability. A plain `flutter run` reports `unavailableOther`. Streaming
   arrives as a single chunk.
-- **Web**: Chrome or Edge with the Prompt API (origin trial or
-  `chrome://flags/#prompt-api-for-gemini-nano`). No image input, no tools,
-  `topP`/`maxOutputTokens` are ignored. Call `ensureReady()` from a user
-  gesture.
+- **Web**: desktop Chrome 148 or newer, from `localhost` or HTTPS (no flag
+  or origin trial). No image input, no tools; `topP`/`maxOutputTokens` are
+  ignored, and so are `temperature`/`topK` where Chrome no longer lets a page
+  set them. Call `ensureReady()` from a user gesture.
 
 ## Testing
 

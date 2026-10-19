@@ -1,3 +1,16 @@
+## 0.2.2
+
+* Web: on a Chrome without `LanguageModel.params()`, sessions no longer pass
+  `temperature` and `topK`, which a page cannot set there; Chrome logged a
+  deprecation warning for every session. The arm says once that the
+  browser's sampling applies.
+* Web: `availabilityReason()` and the docs no longer mention the origin trial
+  or `chrome://flags`. The Prompt API ships in desktop Chrome 148 and newer.
+* `LocalAiAvailability` docs match what each platform reports: Android never
+  reports `unavailableDisabled`, and a missing or outdated AICore is
+  `unavailableOther`.
+* The example app analyzes cleanly on Flutter beta.
+
 ## 0.2.1
 
 Answers [#26](https://github.com/kekko7072/flutter_local_ai/issues/26).

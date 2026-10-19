@@ -339,16 +339,33 @@ void main() {
       expect(options['topK'], 2);
     });
 
-    test('skips the clamp on a build without params()', () async {
-      // Chrome 151 dropped the static; calling it there throws a TypeError on
-      // every createSession, so the clamp has to be feature-detected.
+    test('leaves sampling out on a build without params()', () async {
+      // Chrome 151 dropped the static, and a page there cannot set sampling:
+      // create() would ignore temperature and topK with a deprecation
+      // warning per session. Calling params() blind throws a TypeError.
       final languageModel = FakeLanguageModel(includeParams: false);
-      await openSession(languageModel, temperature: 2.0, topK: 8);
+      final printed = <String>[];
+      await runZoned(
+        () async {
+          final host = await openSession(
+            languageModel,
+            temperature: 2.0,
+            topK: 8,
+          );
+          await host.createSession(sessionId: 2, temperature: 0.8, topK: 3);
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (_, _, _, line) => printed.add(line),
+        ),
+      );
 
-      final options = languageModel.createOptions.single!.dartify()! as Map;
-      expect(options['temperature'], 2.0);
-      expect(options['topK'], 8);
+      for (final created in languageModel.createOptions) {
+        final options = created!.dartify()! as Map;
+        expect(options.containsKey('temperature'), isFalse);
+        expect(options.containsKey('topK'), isFalse);
+      }
       expect(languageModel.paramsCalls, 0);
+      expect(printed, hasLength(1));
     });
 
     test('skips a ceiling the build does not report', () async {

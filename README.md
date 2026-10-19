@@ -27,7 +27,7 @@ Text generation (blocking or streamed), structured JSON outputs, tool calling, a
 - **iOS**: Uses Apple's built-in FoundationModels framework (iOS 26.0+) - system-managed preparation may be required
 - **Android**: Uses Google's ML Kit GenAI (Gemini Nano) - leverages the native on-device model
 - **Windows**: Uses Windows AI APIs (Windows AI Foundry) - the build resolves the Windows App SDK itself; running needs a Copilot+ PC or supported GPU and a packaged app
-- **Web**: Uses Chrome's Prompt API (Gemini Nano in the browser) - no script to load and no model to ship; the API is still trialled, so it needs an origin-trial token or a Chrome flag
+- **Web**: Uses Chrome's Prompt API (Gemini Nano in the browser) - no script to load and no model to ship; part of stable desktop Chrome since 148, with no flag or origin-trial token
 - **No bundled checkpoints**: The OS may download model assets during preparation
 - **Native Performance**: Direct access to OS-optimized AI capabilities
 - **Smaller App Size**: The OS manages model weights; the app still includes the plugin and SDK dependencies
@@ -236,13 +236,16 @@ and a build for another platform is unaffected.
 
 *Running* is gated by the browser, not by the build:
 
-- **Browser.** A desktop Chromium-based browser (Chrome or Edge) that exposes
-  the Prompt API. The API is still trialled, so it appears either behind an
-  [origin-trial token](https://developer.chrome.com/docs/ai/prompt-api) for
-  your site or, for local development, behind
-  `chrome://flags/#prompt-api-for-gemini-nano`. Firefox, Safari and mobile
-  Chrome do not define `LanguageModel` at all; the arm reports
-  `unavailableDeviceUnsupported` there instead of throwing.
+- **Browser.** Desktop Chrome 148 or newer, where the
+  [Prompt API](https://developer.chrome.com/docs/ai/prompt-api) ships without
+  a flag or origin-trial token, on a page served from `localhost` or HTTPS.
+  Older Chrome builds and other Chromium browsers may expose it only behind a
+  flag. Firefox, Safari and mobile Chrome do not define `LanguageModel` at
+  all; the arm reports `unavailableDeviceUnsupported` there instead of
+  throwing.
+- **Sampling.** Chrome no longer lets a web page set `temperature` or `topK`.
+  On a Chrome without `LanguageModel.params()` the arm leaves both out of the
+  session and says so once in the console; the browser's defaults apply.
 - **Device.** Chrome's own floors for Gemini Nano — roughly 22 GB free disk
   and an eligible GPU. Chrome collapses every one of those into a bare
   `'unavailable'` with no reason attached, which is why
@@ -899,9 +902,8 @@ to another backend — the flutter_gemma bridge above being the obvious one.
   often enough that the capability flag would have lied.
 - **Windows tool calls.** Windows AI Foundry exposes no function-calling API.
 - **Web outside Chrome, and Chrome without the Prompt API.** The arm is the
-  Prompt API; no other browser ships it, and Chrome itself exposes
-  `LanguageModel` only behind an origin trial or a flag while the API is
-  trialled. Without the global, `LocalAi.availability()` returns
+  Prompt API; no other browser ships it, and Chrome exposes `LanguageModel`
+  on desktop from 148 on. Without the global, `LocalAi.availability()` returns
   `unavailableDeviceUnsupported` and `capabilities()` reports the backend as
   unsupported — the page still builds and runs, so gate the feature and fall
   back. Image input and tool calling stay unavailable even where the API is

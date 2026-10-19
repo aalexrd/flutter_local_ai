@@ -6,9 +6,9 @@ import 'dart:js_interop_unsafe';
 
 /// JS interop for the Chrome **Prompt API** (`self.LanguageModel`).
 ///
-/// There is no script to load: `LanguageModel` is a bare global the browser
-/// exposes when the Prompt API is enabled (origin trial, `chrome://flags`, or
-/// an extension context). The single feature-detection seam every entry point
+/// There is no script to load: `LanguageModel` is a bare global that desktop
+/// Chrome exposes from 148 on (earlier builds behind an origin trial or
+/// `chrome://flags`). The single feature-detection seam every entry point
 /// must gate on is [hasLanguageModel] — without it, touching `LanguageModel`
 /// throws a JS `ReferenceError` on Firefox, Safari and mobile Chrome.
 ///

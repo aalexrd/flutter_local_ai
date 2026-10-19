@@ -15,10 +15,10 @@ import '../models/tool.dart';
 /// free to grow, while this one is public API. The two are kept aligned by
 /// `availabilityFromWire` in the native host.
 ///
-/// The web host maps Chrome's four `LanguageModel.availability()` states onto
-/// this same set, so [unavailableOsTooOld] and [unavailableDisabled] never
-/// occur there — Chrome folds both into [unavailableDeviceUnsupported] /
-/// [unavailableOther].
+/// Android and the web never report [unavailableOsTooOld] or
+/// [unavailableDisabled]: AICore has no status for either, and the web host
+/// maps Chrome's four `LanguageModel.availability()` states onto
+/// [unavailableDeviceUnsupported] / [unavailableOther].
 enum LocalAiAvailability {
   /// Ready to use now.
   available,
@@ -30,19 +30,24 @@ enum LocalAiAvailability {
   /// A download is already running; wait rather than starting another.
   downloading,
 
-  /// No AICore (Android), no Apple Intelligence hardware, or no Prompt API
-  /// (web). Fall back to a bundled model — this device can't run the built-in
-  /// one.
+  /// The device cannot run the built-in model: AICore reports the feature
+  /// unavailable (Android — the device is not supported, or AICore has not
+  /// finished setting it up), no Apple Intelligence hardware, or no Prompt
+  /// API (web). Fall back to a bundled model.
   unavailableDeviceUnsupported,
 
   /// The OS is below the floor the built-in model requires.
   unavailableOsTooOld,
 
-  /// Present but switched off by the user (Apple Intelligence in Settings, or
-  /// the AICore toggle).
+  /// Present but switched off by the user: Apple Intelligence in Settings.
+  /// Not reported on Android or the web.
   unavailableDisabled,
 
-  /// Unclassified failure. Check device logs; fall back to a bundled model.
+  /// Unclassified failure, or a probe that failed or timed out. On Android
+  /// this includes a missing or outdated AICore (`LocalAi.openAICorePlayStore`
+  /// opens it); on the web, on-device AI turned off in Chrome or below
+  /// Chrome's hardware floor. `LocalAi.availabilityReason()` says which, where
+  /// the platform knows; fall back to a bundled model.
   unavailableOther;
 
   /// Whether this state can still become [available] by waiting or

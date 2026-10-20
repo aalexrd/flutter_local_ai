@@ -187,6 +187,8 @@ the version's `CHANGELOG.md` notes attached.
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-The workflow refuses to publish when the tag and `pubspec.yaml` disagree.
+Bump `version` in `pubspec.yaml` and `s.version` in
+`darwin/flutter_local_ai.podspec` in the same change. The workflow refuses to
+publish when the tag, `pubspec.yaml` and the podspec disagree.
 The package must have this repository and the `v*` tag pattern registered on
 pub.dev under **Admin → Automated publishing** first.

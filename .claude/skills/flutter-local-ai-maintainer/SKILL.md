@@ -114,8 +114,10 @@ legs move without any commit landing here:
 
 ## Releasing
 
-1. Bump `version` in `pubspec.yaml` and add a `## <version>` section to
-   `CHANGELOG.md`.
+1. Bump `version` in `pubspec.yaml` and `s.version` in
+   `darwin/flutter_local_ai.podspec` together, and add a `## <version>`
+   section to `CHANGELOG.md`. CI's `package` job fails when the two
+   versions differ.
 2. Merge to `main`. `release-on-merge.yml` tags `v<version>` when pub.dev
    lacks that version.
 3. The tag runs `publish.yml`: it validates on the floor and pinned SDKs,

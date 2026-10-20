@@ -1,4 +1,7 @@
-## 0.2.2
+## 0.2.3
+
+The 0.2.2 release was tagged but never published: its podspec still said
+0.2.1, so the publish run stopped. 0.2.3 carries the same changes.
 
 Notes from the flutter_edge_ai built-in AI codelab review.
 
@@ -23,6 +26,7 @@ Notes from the flutter_edge_ai built-in AI codelab review.
   reports `unavailableDisabled`, and a missing or outdated AICore is
   `unavailableOther`.
 * The example app analyzes cleanly on Flutter beta.
+* CI fails a pull request whose podspec version differs from `pubspec.yaml`.
 
 ## 0.2.1
 

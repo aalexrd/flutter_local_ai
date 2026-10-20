@@ -260,3 +260,16 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter pub publish --dry-run
+      # publish.yml checks this too, but only once the tag exists, and a tag
+      # cannot be re-pushed after it fails there: 0.2.2 was tagged with a
+      # stale podspec and had to ship as 0.2.3. Checking it here fails the PR that bumps the version.
+      - name: Check the podspec version matches the pubspec version
+        run: |
+          version=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+          podspec=$(sed -nE "s/^[[:space:]]*s\.version[[:space:]]*=[[:space:]]*'([^']*)'.*/\1/p" \
+            darwin/flutter_local_ai.podspec | head -1)
+          if [[ "$podspec" != "$version" ]]; then
+            echo "::error::darwin/flutter_local_ai.podspec says" \
+                 "'$podspec', pubspec.yaml says $version. Bump both together."
+            exit 1
+          fi

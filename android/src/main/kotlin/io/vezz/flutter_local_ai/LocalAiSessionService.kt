@@ -179,9 +179,12 @@ internal class LocalAiSessionService(
           FeatureStatus.DOWNLOADING ->
             "Gemini Nano is downloading. Call LocalAi.ensureReady() and wait."
           FeatureStatus.UNAVAILABLE ->
-            "This device does not support Gemini Nano through AICore. It needs " +
-              "a Pixel 9 or newer, a Galaxy S25 or newer, or another AICore " +
-              "device."
+            "AICore reports Gemini Nano as unavailable: either this device " +
+              "does not support the Prompt API, or AICore has not finished " +
+              "setting it up. Supported devices are listed at " +
+              "https://developers.google.com/ml-kit/genai#prompt-device " +
+              "(no emulators, no unlocked bootloaders). On a listed device, " +
+              "stay online and check again later; setup can take hours."
           else -> "AICore reported an unrecognised feature status."
         }
         callback(Result.success(reason))

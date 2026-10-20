@@ -3,6 +3,19 @@
 The 0.2.2 release was tagged but never published: its podspec still said
 0.2.1, so the publish run stopped. 0.2.3 carries the same changes.
 
+Notes from the flutter_edge_ai built-in AI codelab review.
+
+* `LocalAi.availability()` prints why it reports `unavailableOther` when the
+  probe fails or times out, once per cause. An unregistered plugin, such as
+  after a hot restart that follows `flutter pub add`, no longer reads as an
+  unsupported device.
+* `ensureReady()` reports the status the OS gives when the model becomes
+  unavailable during a download, such as `unavailableDisabled`, instead of
+  always `unavailableOther`.
+* The Android unavailability reason links Google's Prompt API device list
+  and says that a supported device can need time to set up. It no longer
+  names the Galaxy S25, which is not on that list.
+* `FakeLocalAiHost.checkAvailabilityError` simulates a failing probe.
 * Web: on a Chrome without `LanguageModel.params()`, sessions no longer pass
   `temperature` and `topK`, which a page cannot set there; Chrome logged a
   deprecation warning for every session. The arm says once that the

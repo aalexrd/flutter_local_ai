@@ -97,19 +97,18 @@ await session.close();
 await model.close();
 ```
 
-## Relationship to flutter_gemma
+## Use with flutter_edge_ai
 
-This is a standalone plugin: it depends on no `flutter_gemma` package, and
-owns its native backends and Chrome Prompt API arm outright. The bridge that
-lets flutter_gemma treat the OS model as one of its inference engines is
-[`flutter_gemma_builtin_ai`](https://github.com/DenisovAV/flutter_gemma/tree/main/packages/flutter_gemma_builtin_ai),
-which lives in the flutter_gemma repository — so a flutter_gemma interface
-change and the bridge that follows it ship together, in one upstream PR. The
-dependency only ever points that way: the bridge may depend on this package,
-this package never depends on flutter_gemma. If you already use that package,
-nothing changes: it keeps its own name, imports and `BuiltInAi*` API. If you
-only want the OS model, depend on this package alone and skip flutter_gemma's
-plugin, downloader and SDK floor.
+[`flutter_edge_ai_builtin_ai`](https://pub.dev/packages/flutter_edge_ai_builtin_ai)
+adapts this package to flutter_edge_ai's `InferenceEngineProvider`, so an OS
+model can be selected alongside flutter_edge_ai's downloaded-model engines.
+It depends directly on `flutter_local_ai`; this package remains standalone and
+does not depend on flutter_edge_ai.
+
+Use `flutter_edge_ai_builtin_ai` when your app already uses flutter_edge_ai and
+wants the OS model behind the same `InferenceModel` / `InferenceModelSession`
+API. Depend on `flutter_local_ai` directly when you only need the OS model, or
+when you want its native tool-calling and schema-constrained session APIs.
 
 See [platform support](doc/platform-support.md) for what each backend can
 actually do, what it needs at build time, and what has been verified.
@@ -126,7 +125,7 @@ or add it to `pubspec.yaml` by hand:
 
 ```yaml
 dependencies:
-  flutter_local_ai: ^0.2.0
+  flutter_local_ai: ^0.3.0
 ```
 
 ### Upgrading from 0.1.x

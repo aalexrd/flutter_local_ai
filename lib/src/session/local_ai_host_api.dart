@@ -125,6 +125,61 @@ class LocalAiSessionBusyException extends PlatformException
   String toString() => 'LocalAiSessionBusyException($sessionId): $message';
 }
 
+/// A failure reported by the model during generation: thrown by the
+/// one-shot generate calls for the OS's own generation errors (ML Kit GenAI
+/// on Android, FoundationModels on Apple, `GENERATION_ERROR` on Windows), and
+/// delivered on the response stream for the session that caused it on every
+/// platform.
+///
+/// Also a [PlatformException] with code `GENERATION_ERROR` (what Windows
+/// already threw), carrying [errorCode] and [retryDelay] in its details, so
+/// code that catches the native hosts' platform errors keeps catching it.
+class LocalAiGenerationException extends PlatformException {
+  LocalAiGenerationException(String message, {this.errorCode, this.retryDelay})
+    : super(
+        code: 'GENERATION_ERROR',
+        message: message,
+        details: errorCode == null && retryDelay == null
+            ? null
+            : {
+                if (errorCode != null) 'errorCode': errorCode,
+                if (retryDelay != null)
+                  'retryDelayMs': retryDelay.inMilliseconds,
+              },
+      );
+
+  /// The OS's own code for the failure, where it reports one, so callers can
+  /// tell a failure worth retrying from one that is not:
+  ///
+  /// - Android: ML Kit GenAI's `GenAiException.ErrorCode`, an [int]: for
+  ///   example `9` (`BUSY`, retry with exponential backoff), `27`
+  ///   (`PER_APP_BATTERY_USE_QUOTA_EXCEEDED`) or `30`
+  ///   (`BACKGROUND_USE_BLOCKED`).
+  /// - Apple: the FoundationModels error case name, a [String]. An app built
+  ///   with the iOS/macOS 27 SDK gets the `LanguageModelError`,
+  ///   `LanguageModelSession.Error` and `SystemLanguageModel.Error` names on
+  ///   OS 27 (`'rateLimited'`, `'contextSizeExceeded'`, `'timeout'`, ...)
+  ///   and the `LanguageModelSession.GenerationError` names on OS 26
+  ///   (`'rateLimited'`, `'exceededContextWindowSize'`, ...). Some failures
+  ///   are spelled differently in the two sets, so match both.
+  ///
+  /// Null on Windows and the web, and wherever the platform reported no code.
+  final Object? errorCode;
+
+  /// How long the OS asks the app to wait before retrying, where it says:
+  /// ML Kit GenAI's `GenAiException.retryDelay` on Android, set for requests
+  /// over quota. Null elsewhere, and when ML Kit reports no delay.
+  final Duration? retryDelay;
+
+  @override
+  String get message => super.message!;
+
+  @override
+  String toString() => errorCode == null
+      ? 'LocalAiGenerationException: $message'
+      : 'LocalAiGenerationException($errorCode): $message';
+}
+
 /// Which OS API is answering.
 enum LocalAiBackendKind {
   androidMlKitGenAi,
@@ -234,10 +289,23 @@ class LocalAiTokenEvent extends LocalAiHostEvent {
 /// A generation failure, delivered as a tagged data event rather than a stream
 /// error so it reaches only the session that caused it.
 class LocalAiErrorEvent extends LocalAiHostEvent {
-  const LocalAiErrorEvent({required this.sessionId, required this.message});
+  const LocalAiErrorEvent({
+    required this.sessionId,
+    required this.message,
+    this.errorCode,
+    this.retryDelay,
+  });
 
   final int sessionId;
   final String message;
+
+  /// The OS's own code for the failure, where it reports one; see
+  /// `LocalAiGenerationException.errorCode`.
+  final Object? errorCode;
+
+  /// How long the OS asks the app to wait before retrying, where it says;
+  /// see `LocalAiGenerationException.retryDelay`.
+  final Duration? retryDelay;
 }
 
 /// Progress of the OS feature download. Not session-scoped.

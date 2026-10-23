@@ -139,9 +139,30 @@ internal class LocalAiSessionService(
     mapOf("partialResult" to "", "done" to true, "sessionId" to sessionId)
   )
 
-  private fun postError(sessionId: Long, message: String) = postEvent(
-    mapOf("code" to "ERROR", "message" to message, "sessionId" to sessionId)
+  private fun postError(sessionId: Long, e: Exception) = postEvent(
+    mapOf(
+      "code" to "ERROR",
+      "message" to (e.message ?: "Generation failed"),
+      "sessionId" to sessionId,
+    ) + genAiDetails(e)
   )
+
+  /** ML Kit's own code for a [GenAiException], and how long it asks the app
+   *  to wait before retrying (zero when it doesn't say), so the app can tell
+   *  `BUSY` (retry with backoff) from a long-duration quota or blocked
+   *  background use. Empty for any other exception. */
+  private fun genAiDetails(e: Exception): Map<String, Any> =
+    if (e is GenAiException) {
+      mapOf("errorCode" to e.errorCode, "retryDelayMs" to e.retryDelay.toMillis())
+    } else emptyMap()
+
+  /** A generate failure as Dart sees it: a [GenAiException] becomes
+   *  `GENERATION_ERROR` (the code the Windows host already uses) carrying
+   *  [genAiDetails]. Anything else passes through unchanged. */
+  private fun generationFailure(e: Exception): Throwable =
+    if (e is GenAiException) {
+      FlutterError("GENERATION_ERROR", e.message ?: "Generation failed", genAiDetails(e))
+    } else e
 
   // === Availability ===
 
@@ -528,7 +549,7 @@ internal class LocalAiSessionService(
         }
         callback(Result.success(text))
       } catch (e: Exception) {
-        callback(Result.failure(e))
+        callback(Result.failure(generationFailure(e)))
       }
     }
     state.job!!.start()
@@ -579,7 +600,7 @@ internal class LocalAiSessionService(
         // on that path.
         throw e
       } catch (e: Exception) {
-        postError(sessionId, e.message ?: "Generation failed")
+        postError(sessionId, e)
       }
     }
     state.job!!.start()

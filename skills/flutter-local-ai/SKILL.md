@@ -110,6 +110,15 @@ try {
 - One turn per session at a time. A second concurrent `getResponse` throws
   `LocalAiSessionBusyException`. Open another session for parallel work.
 - Per-turn sampling: `getResponse(overrides: LocalAiGenerationOverrides(...))`.
+- A failed turn throws (or, when streaming, emits) `LocalAiGenerationException`.
+  Branch on `errorCode`, the OS's own code, rather than on `message`: on
+  Android an `int` from ML Kit's `GenAiException.ErrorCode` (`9` `BUSY`:
+  retry with exponential backoff; `27` a long-duration battery quota; `30`
+  blocked background use: retry in the foreground), with `retryDelay` as
+  ML Kit's suggested wait when it gives one; on Apple the FoundationModels
+  case name, e.g. `'rateLimited'`. Apple spells some failures differently on
+  OS 26 and OS 27 (`exceededContextWindowSize` / `contextSizeExceeded`), so
+  match both. The `FlutterLocalAi.generateText` facade does not expose it.
 
 ## Structured output (JSON schema)
 
@@ -225,8 +234,9 @@ test('summarizes', () async {
 ```
 
 For streaming tests, play the platform's part with `host.emitToken(...)`,
-`host.emitDone(...)` and `host.emitError(...)`. Extend `FakeLocalAiHost`
-instead of writing your own double.
+`host.emitDone(...)` and `host.emitError(..., errorCode: 9)`. Set
+`host.generateResponseError` to make a one-shot generate fail. Extend
+`FakeLocalAiHost` instead of writing your own double.
 
 ## Common mistakes
 

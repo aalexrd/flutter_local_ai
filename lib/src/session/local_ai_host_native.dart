@@ -63,6 +63,13 @@ wire.ToolSpec _toolToWire(LocalAiTool tool) => wire.ToolSpec(
   parametersSchemaJson: jsonEncode(tool.resolvedParameterSchema),
 );
 
+/// A native retry delay in milliseconds; null when absent or zero, which is
+/// how ML Kit says it has none.
+Duration? _retryDelay(Object? milliseconds) =>
+    milliseconds is num && milliseconds > 0
+    ? Duration(milliseconds: milliseconds.toInt())
+    : null;
+
 /// Native host: pigeon for calls, one EventChannel for streamed output.
 ///
 /// Also serves as the Dart end of the tool-calling callback — the native side
@@ -105,6 +112,8 @@ class NativeLocalAiHost implements LocalAiHost, wire.LocalAiToolRunner {
       return LocalAiErrorEvent(
         sessionId: sessionId,
         message: event['message']?.toString() ?? 'Unknown generation error',
+        errorCode: event['errorCode'],
+        retryDelay: _retryDelay(event['retryDelayMs']),
       );
     }
     return LocalAiTokenEvent(
@@ -225,9 +234,11 @@ class NativeLocalAiHost implements LocalAiHost, wire.LocalAiToolRunner {
   Future<String> generateResponse(
     int sessionId, {
     LocalAiGenerationOverrides? overrides,
-  }) => _busy(
-    sessionId,
-    _service.generateResponse(sessionId, _overridesToWire(overrides)),
+  }) => _generation(
+    _busy(
+      sessionId,
+      _service.generateResponse(sessionId, _overridesToWire(overrides)),
+    ),
   );
 
   @override
@@ -244,12 +255,14 @@ class NativeLocalAiHost implements LocalAiHost, wire.LocalAiToolRunner {
     required int sessionId,
     required String schemaJson,
     LocalAiGenerationOverrides? overrides,
-  }) => _busy(
-    sessionId,
-    _service.generateStructuredResponse(
-      sessionId: sessionId,
-      schemaJson: schemaJson,
-      overrides: _overridesToWire(overrides),
+  }) => _generation(
+    _busy(
+      sessionId,
+      _service.generateStructuredResponse(
+        sessionId: sessionId,
+        schemaJson: schemaJson,
+        overrides: _overridesToWire(overrides),
+      ),
     ),
   );
 
@@ -260,6 +273,27 @@ class NativeLocalAiHost implements LocalAiHost, wire.LocalAiToolRunner {
       (e as PlatformException).message ?? 'Session is busy.',
     ),
     test: (e) => e is PlatformException && e.code == 'SESSION_BUSY',
+  );
+
+  /// Maps `GENERATION_ERROR` to [LocalAiGenerationException], carrying the
+  /// OS error code and retry delay the native host put in the error's
+  /// details. Windows sends the same code without details.
+  static Future<T> _generation<T>(Future<T> call) => call.catchError(
+    (Object e) {
+      final error = e as PlatformException;
+      final details = error.details;
+      throw LocalAiGenerationException(
+        error.message ?? 'Generation failed',
+        errorCode: details is Map ? details['errorCode'] : null,
+        retryDelay: details is Map
+            ? _retryDelay(details['retryDelayMs'])
+            : null,
+      );
+    },
+    test: (e) =>
+        e is PlatformException &&
+        e is! LocalAiGenerationException &&
+        e.code == 'GENERATION_ERROR',
   );
 
   @override

@@ -96,9 +96,20 @@ class LocalAiSession {
                 cleanup();
                 controller.close();
               }
-            case LocalAiErrorEvent(:final sessionId, :final message)
+            case LocalAiErrorEvent(
+                  :final sessionId,
+                  :final message,
+                  :final errorCode,
+                  :final retryDelay,
+                )
                 when sessionId == this.sessionId:
-              controller.addError(LocalAiGenerationException(message));
+              controller.addError(
+                LocalAiGenerationException(
+                  message,
+                  errorCode: errorCode,
+                  retryDelay: retryDelay,
+                ),
+              );
               cleanup();
               controller.close();
             default:
@@ -190,15 +201,4 @@ class LocalAiSession {
     }
     _onClose();
   }();
-}
-
-/// A failure reported by the model during generation, delivered on the
-/// response stream for the session that caused it.
-class LocalAiGenerationException implements Exception {
-  LocalAiGenerationException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'LocalAiGenerationException: $message';
 }

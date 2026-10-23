@@ -35,8 +35,9 @@ version alone.
 | Explicit thinking control | Not exposed | Not bridged | Not exposed | Not exposed |
 
 Apple's latest updates also introduce DynamicProfile, ToolCallingMode, new
-error types, system Vision tools, custom LanguageModel implementations, and
-Private Cloud Compute. Those APIs are not all exposed by this package. The
+error types (their case names reach Dart as
+`LocalAiGenerationException.errorCode`), system Vision tools, custom
+LanguageModel implementations, and Private Cloud Compute. Those APIs are not all exposed by this package. The
 OS-provided on-device model updates automatically; model behavior still needs
 prompt regression testing. Private Cloud Compute is a cloud path and is
 intentionally not silently selected by this local-only backend. Native

@@ -166,6 +166,11 @@ class FakeLocalAiHost implements LocalAiHost {
   /// Thrown by [closeSession] when set — models a failed teardown.
   Object? closeSessionError;
 
+  /// Thrown by [generateResponse] and [generateStructuredResponse] when set —
+  /// models the OS refusing a turn, e.g. a `LocalAiGenerationException` whose
+  /// `errorCode` is ML Kit's `BUSY` (`9`).
+  Object? generateResponseError;
+
   final _events = StreamController<LocalAiHostEvent>.broadcast();
 
   /// Method names in call order, for the few assertions that are genuinely
@@ -221,9 +226,21 @@ class FakeLocalAiHost implements LocalAiHost {
     LocalAiTokenEvent(sessionId: sessionId, partialResult: text, done: true),
   );
 
-  /// A generation failure on [sessionId].
-  void emitError(int sessionId, String message) =>
-      emit(LocalAiErrorEvent(sessionId: sessionId, message: message));
+  /// A generation failure on [sessionId], optionally with the OS's own
+  /// [errorCode] and [retryDelay] (see `LocalAiGenerationException`).
+  void emitError(
+    int sessionId,
+    String message, {
+    Object? errorCode,
+    Duration? retryDelay,
+  }) => emit(
+    LocalAiErrorEvent(
+      sessionId: sessionId,
+      message: message,
+      errorCode: errorCode,
+      retryDelay: retryDelay,
+    ),
+  );
 
   /// Download progress. [bytesTotal] of 0 models a host that reports no
   /// total, which is what Android does.
@@ -378,6 +395,8 @@ class FakeLocalAiHost implements LocalAiHost {
   }) async {
     calls.add('generateResponse');
     _record(sessionId, overrides);
+    final error = generateResponseError;
+    if (error != null) throw error;
     return response;
   }
 
@@ -398,6 +417,8 @@ class FakeLocalAiHost implements LocalAiHost {
   }) async {
     calls.add('generateStructuredResponse');
     _record(sessionId, overrides).lastSchemaJson = schemaJson;
+    final error = generateResponseError;
+    if (error != null) throw error;
     return response;
   }
 

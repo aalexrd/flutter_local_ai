@@ -1,8 +1,7 @@
-## Unreleased
+## 0.3.0
 
 A generation failure now says why, so an app can retry the failures worth
-retrying and not the rest. Suggested release: 0.3.0, for the breaking
-changes below.
+retrying and not the rest.
 
 ### Breaking changes
 

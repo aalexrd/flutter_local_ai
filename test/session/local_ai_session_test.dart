@@ -171,6 +171,58 @@ void main() {
       await bSub.cancel();
     });
 
+    test('a streamed error keeps the OS error code and retry delay', () async {
+      final model = await newModel();
+      final session = await model.openSession();
+      final errors = <Object>[];
+      final done = Completer<void>();
+      session.getResponseAsync().listen(
+        (_) {},
+        onError: errors.add,
+        onDone: done.complete,
+      );
+      await pumpEventQueue();
+
+      host.emitError(
+        session.sessionId,
+        'busy',
+        errorCode: 9,
+        retryDelay: const Duration(seconds: 2),
+      );
+      await done.future;
+
+      expect(
+        errors.single,
+        isA<LocalAiGenerationException>()
+            .having((e) => e.errorCode, 'errorCode', 9)
+            .having(
+              (e) => e.retryDelay,
+              'retryDelay',
+              const Duration(seconds: 2),
+            ),
+      );
+    });
+
+    test('a one-shot generate surfaces the fake host error', () async {
+      final model = await newModel();
+      final session = await model.openSession();
+      host.generateResponseError = LocalAiGenerationException(
+        'quota',
+        errorCode: 27,
+      );
+
+      await expectLater(
+        session.getResponse(),
+        throwsA(
+          isA<LocalAiGenerationException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            27,
+          ),
+        ),
+      );
+    });
+
     test('a failure to start generation surfaces on the stream', () async {
       final model = await newModel();
       final session = await model.openSession();

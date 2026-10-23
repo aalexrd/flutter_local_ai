@@ -936,6 +936,16 @@ Main class for interacting with local AI.
 - `Stream<ModelDownloadStatus> downloadModel()` - Request the one-time on-device model download and observe its progress; failures always surface on the stream
 - `Future<bool> openAICorePlayStore()` - Open Google AICore in the Play Store (Android only, useful when error -101 occurs)
 
+### `LocalAiGenerationException`
+
+Thrown by a failed `getResponse()` / `getStructuredResponse()` on Android,
+Apple and Windows, and emitted by `getResponseAsync()` on every platform. It
+is also a `PlatformException` with code `GENERATION_ERROR`.
+
+- `String message` - the platform's description of the failure
+- `Object? errorCode` - the OS's own code: on Android ML Kit GenAI's `GenAiException.ErrorCode` (`int`, e.g. `9` `BUSY`, retry with exponential backoff); on Apple the FoundationModels error case name (`String`, e.g. `'rateLimited'`; OS 26 and OS 27 spell some cases differently). Null on Windows and the web
+- `Duration? retryDelay` - ML Kit's suggested wait before retrying, on Android, for requests over quota
+
 ### `LocalAiTool` / `ToolParameter`
 
 A Dart-defined tool the on-device model can invoke (see Tool Calls above).

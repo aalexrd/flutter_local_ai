@@ -1,3 +1,57 @@
+## Unreleased
+
+A generation failure now says why, so an app can retry the failures worth
+retrying and not the rest. Suggested release: 0.3.0, for the breaking
+changes below.
+
+### Breaking changes
+
+* **A failed generation on Android and Apple is a
+  `LocalAiGenerationException` with code `GENERATION_ERROR`**, the code the
+  Windows host already used. `getResponse()` and `getStructuredResponse()`
+  throw it (Windows' `GENERATION_ERROR` maps to it too), and
+  `getResponseAsync()` keeps emitting it. Before, the code was
+  `GenAiException` on Android and `ERROR` on Apple.
+* **The exception is now a `PlatformException`.** An `on PlatformException`
+  handler keeps catching it, but one placed before `on
+  LocalAiGenerationException`, or an `is PlatformException` check, now takes
+  that branch for streamed errors too.
+* **Android's error `message` and `details` changed.** The message is
+  `GenAiException.message` instead of `toString()` (no class-name prefix),
+  and `details` is a map with `errorCode` and `retryDelayMs` instead of the
+  stack-trace string. On Apple, `details` of a FoundationModels error is
+  `{errorCode: ...}` instead of null. Windows' `GENERATION_ERROR` keeps null
+  details but arrives as `LocalAiGenerationException`, including the
+  "Windows App Runtime is older than the SDK" setup error.
+
+*Migration:* catch `LocalAiGenerationException` and branch on `errorCode`
+instead of matching the code or message strings.
+
+### New
+
+* `LocalAiGenerationException.errorCode`, the OS's own code. On Android it is
+  ML Kit GenAI's `GenAiException.ErrorCode`, an `int` (`9` `BUSY`, `27`
+  `PER_APP_BATTERY_USE_QUOTA_EXCEEDED`, `30` `BACKGROUND_USE_BLOCKED`, ...).
+  On Apple it is the FoundationModels error case name, a `String`: from
+  `LanguageModelError`, `LanguageModelSession.Error` and
+  `SystemLanguageModel.Error` for an app built with the iOS/macOS 27 SDK
+  running on OS 27, and from `LanguageModelSession.GenerationError` on OS 26.
+  Some failures are spelled differently in the two sets
+  (`exceededContextWindowSize` / `contextSizeExceeded`, `unsupportedGuide` /
+  `unsupportedGenerationGuide`); `rateLimited` is the same in both. Null on
+  Windows and the web.
+* `LocalAiGenerationException.retryDelay`: ML Kit's `GenAiException.retryDelay`
+  on Android, set for requests over quota.
+* `LocalAiErrorEvent` carries the same `errorCode` and `retryDelay`.
+* `FakeLocalAiHost` gains `generateResponseError` (thrown by `generateResponse`
+  and `generateStructuredResponse`), and `emitError` takes an optional
+  `errorCode` and `retryDelay`, so apps can test these paths.
+
+Apple failures that are not FoundationModels errors (a cancellation, a schema
+the builder rejected, a tool failure) keep their `ERROR` code. The
+`FlutterLocalAi.generateText` facade still wraps every failure in a plain
+`Exception`; use the session API to read `errorCode`.
+
 ## 0.2.3
 
 The 0.2.2 release was tagged but never published: its podspec still said

@@ -48,7 +48,8 @@ struct SnapshotDeltaConverter {
 ///      never `FlutterEndOfEventStream` — the channel is shared across
 ///      sessions, so ending it would end everyone's stream;
 ///   3. generation failures are the tagged data event `{code: "ERROR", ...}`,
-///      never a channel error, which would reach every session and lose the id.
+///      never a channel error, which would reach every session and lose the id;
+///      `errorCode` names the framework's error case where it threw one.
 ///
 /// FoundationModels exists only on iOS/macOS 26+, while this package builds
 /// from the iOS 13 / macOS 12 floor in Package.swift. Every use is therefore
@@ -177,8 +178,13 @@ class LocalAiSessionService: NSObject, LocalAiService, FlutterStreamHandler {
     postEvent(["partialResult": "", "done": true, "sessionId": sessionId])
   }
 
-  private func postError(_ sessionId: Int64, _ message: String) {
-    postEvent(["code": "ERROR", "message": message, "sessionId": sessionId])
+  private func postError(_ sessionId: Int64, _ error: Error) {
+    postEvent([
+      "code": "ERROR",
+      "message": Self.describeGenerationError(error),
+      "sessionId": sessionId,
+      "errorCode": Self.generationErrorCode(error),
+    ])
   }
 
   #if canImport(FoundationModels)
@@ -611,12 +617,7 @@ class LocalAiSessionService: NSObject, LocalAiService, FlutterStreamHandler {
           try Task.checkCancellation()
           finish(.success(response.content))
         } catch {
-          finish(
-            .failure(
-              PigeonError(
-                code: "ERROR",
-                message: Self.describeGenerationError(error),
-                details: nil)))
+          finish(.failure(Self.generationFailure(error)))
         }
       }
     #else
@@ -670,7 +671,7 @@ class LocalAiSessionService: NSObject, LocalAiService, FlutterStreamHandler {
           // `stopGeneration` has already posted the one completion.
           if Task.isCancelled { return }
           Self.endTurn(state, turn)
-          self.postError(sessionId, Self.describeGenerationError(error))
+          self.postError(sessionId, error)
         }
       }
       completion(.success(()))
@@ -731,12 +732,7 @@ class LocalAiSessionService: NSObject, LocalAiService, FlutterStreamHandler {
           try Task.checkCancellation()
           finish(.success(response.content.jsonString))
         } catch {
-          finish(
-            .failure(
-              PigeonError(
-                code: "ERROR",
-                message: Self.describeGenerationError(error),
-                details: nil)))
+          finish(.failure(Self.generationFailure(error)))
         }
       }
     #else
@@ -836,6 +832,84 @@ class LocalAiSessionService: NSObject, LocalAiService, FlutterStreamHandler {
       code: "TOKENIZER_UNAVAILABLE",
       message: "Token counting is unavailable: \(why)",
       details: nil)
+  }
+
+  /// A failed generate as Dart sees it. A FoundationModels error becomes
+  /// `GENERATION_ERROR` (the code the Windows host already uses) with the
+  /// framework's error case in the details, so the app can tell a rate limit
+  /// from a refusal without parsing the message. Anything else (a
+  /// cancellation, a schema the builder rejected, a tool failure) keeps the
+  /// `ERROR` code it had.
+  private static func generationFailure(_ error: Error) -> PigeonError {
+    let message = describeGenerationError(error)
+    guard let code = generationErrorCode(error) else {
+      return PigeonError(code: "ERROR", message: message, details: nil)
+    }
+    return PigeonError(
+      code: "GENERATION_ERROR", message: message, details: ["errorCode": code])
+  }
+
+  /// The FoundationModels error case [error] is, by its Swift case name (e.g.
+  /// `"rateLimited"`), or nil when it is not one of the framework's errors.
+  ///
+  /// Built with the iOS 27 SDK, the framework throws `LanguageModelError`,
+  /// `LanguageModelSession.Error` or `SystemLanguageModel.Error` on iOS 27,
+  /// and `LanguageModelSession.GenerationError` on earlier systems; both are
+  /// matched.
+  private static func generationErrorCode(_ error: Error) -> String? {
+    #if canImport(FoundationModels)
+      // The OS 27 error types exist only in the OS 27 SDK — see countTokens
+      // for why the compiler version is the usable proxy.
+      #if compiler(>=6.4)
+        if #available(iOS 27.0, macOS 27.0, *) {
+          if let modelError = error as? LanguageModelError {
+            switch modelError {
+            case .contextSizeExceeded: return "contextSizeExceeded"
+            case .rateLimited: return "rateLimited"
+            case .refusal: return "refusal"
+            case .timeout: return "timeout"
+            case .guardrailViolation: return "guardrailViolation"
+            case .unsupportedCapability: return "unsupportedCapability"
+            case .unsupportedTranscriptContent: return "unsupportedTranscriptContent"
+            case .unsupportedGenerationGuide: return "unsupportedGenerationGuide"
+            case .unsupportedLanguageOrLocale: return "unsupportedLanguageOrLocale"
+            @unknown default: return nil
+            }
+          }
+          if let sessionError = error as? LanguageModelSession.Error {
+            switch sessionError {
+            case .concurrentRequests: return "concurrentRequests"
+            case .transcriptMutationWhileResponding:
+              return "transcriptMutationWhileResponding"
+            @unknown default: return nil
+            }
+          }
+          if let systemError = error as? SystemLanguageModel.Error {
+            switch systemError {
+            case .assetsUnavailable: return "assetsUnavailable"
+            @unknown default: return nil
+            }
+          }
+        }
+      #endif
+      if #available(iOS 26.0, macOS 26.0, *),
+        let generationError = error as? LanguageModelSession.GenerationError
+      {
+        switch generationError {
+        case .exceededContextWindowSize: return "exceededContextWindowSize"
+        case .assetsUnavailable: return "assetsUnavailable"
+        case .guardrailViolation: return "guardrailViolation"
+        case .unsupportedGuide: return "unsupportedGuide"
+        case .unsupportedLanguageOrLocale: return "unsupportedLanguageOrLocale"
+        case .decodingFailure: return "decodingFailure"
+        case .rateLimited: return "rateLimited"
+        case .concurrentRequests: return "concurrentRequests"
+        case .refusal: return "refusal"
+        @unknown default: return nil
+        }
+      }
+    #endif
+    return nil
   }
 
   private static func describeGenerationError(_ error: Error) -> String {

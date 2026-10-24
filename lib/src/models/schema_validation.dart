@@ -2,10 +2,11 @@
 const _scalarTypes = {'string', 'integer', 'number', 'boolean'};
 
 /// Validates that [schema] uses only the JSON Schema subset the native backends
-/// can translate (Apple FoundationModels `GenerationSchema`), throwing an
-/// [ArgumentError] with a path-qualified message otherwise. Catching invalid
-/// schemas in Dart yields a clear, immediate error instead of an opaque native
-/// failure after the method-channel round trip.
+/// can translate or pass to their native schema API (Apple Foundation Models
+/// `GenerationSchema`, Windows AI structured generation and Chrome's Prompt
+/// API), throwing an [ArgumentError] with a path-qualified message otherwise.
+/// Catching invalid schemas in Dart yields a clear, immediate error instead of
+/// an opaque native failure after the method-channel round trip.
 ///
 /// Supported constructs (mirrors the Apple `SchemaBuilder`):
 /// - objects: `type: 'object'` (or omitted) with `properties` (each itself a

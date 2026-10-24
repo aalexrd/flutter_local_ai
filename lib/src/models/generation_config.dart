@@ -7,7 +7,8 @@ enum ResponseFormat {
 
   /// Schema-constrained JSON. Requires [GenerationConfig.schema] and is only
   /// honored on backends that report `supportsStructuredOutput` (Apple
-  /// FoundationModels). Other backends throw when JSON output is requested.
+  /// Foundation Models, Windows AI and Chrome's Prompt API). Other backends
+  /// throw when JSON output is requested.
   json,
 }
 
@@ -34,8 +35,9 @@ class GenerationConfig {
 
   /// JSON Schema describing the structured output. When provided (with
   /// [responseFormat] == [ResponseFormat.json]), the model is constrained to
-  /// emit JSON matching this schema. Only supported on Apple FoundationModels;
-  /// see `LocalAiPlatformInfo.supportsStructuredOutput`.
+  /// emit JSON matching this schema. Supported on Apple Foundation Models,
+  /// Windows AI and Chrome's Prompt API; see
+  /// `LocalAiPlatformInfo.supportsStructuredOutput`.
   final Map<String, dynamic>? schema;
 
   const GenerationConfig({

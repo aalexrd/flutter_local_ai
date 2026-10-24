@@ -476,7 +476,7 @@ path-qualified `ArgumentError` naming the tool.
   }
   ```
 
-### Structured Outputs (Apple platforms)
+### Structured Outputs
 
 Pass a JSON Schema through `GenerationConfig` to *constrain* generation to valid
 JSON instead of free-form text. On Apple FoundationModels this uses the same
@@ -963,8 +963,8 @@ Configuration for text generation.
 - `temperature` (double?, optional) - Temperature for generation (0.0 to 1.0)
 - `topP` (double?, optional) - Top-p (nucleus) sampling. On Apple maps to `.random(probabilityThreshold:)`
 - `topK` (int?, optional) - Top-k sampling. On Apple maps to `.random(top:)` and takes precedence over `topP`
-- `responseFormat` (`ResponseFormat`, default: `text`) - `text` for free-form output, or `json` for schema-constrained JSON (Apple only). `json` requires a non-null `schema`
-- `schema` (`Map<String, dynamic>?`, optional) - JSON Schema the output is constrained to (Apple only; see Structured Outputs above). Supplying a schema implies JSON mode and is validated in Dart before the platform channel
+- `responseFormat` (`ResponseFormat`, default: `text`) - `text` for free-form output, or `json` for schema-constrained JSON on supported backends. `json` requires a non-null `schema`
+- `schema` (`Map<String, dynamic>?`, optional) - JSON Schema the output is constrained to on supported backends (Apple, Windows and Chrome; see Structured Outputs above). Supplying a schema implies JSON mode and is validated in Dart before the platform channel
 
 > Sampling precedence on Apple: topK > topP > temperature > greedy. `.greedy` is
 > never combined with a temperature (that pairing throws on-device).
